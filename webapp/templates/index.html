@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>People Counter WebApp</title>
+    <style>
+        body { background: #222; color: #eee; text-align: center; }
+        h1 { margin-top: 30px; }
+        img { border: 5px solid #444; margin-top: 20px; }
+        .controls { margin-top: 20px; }
+        button { font-size: 18px; padding: 10px 20px; margin: 0 10px; }
+    </style>
+</head>
+<body>
+    <h1>People Counter Video Detection</h1>
+    <div class="controls">
+        <button id="playBtn">Play</button>
+        <button id="pauseBtn">Pause</button>
+    </div>
+    <img id="videoStream" src="/video" width="960" height="540" />
+    <p>Live detection and counting using YOLOv8 and SORT</p>
+    <script>
+        const img = document.getElementById('videoStream');
+        let playing = true;
+        let interval;
+        function startStream() {
+            img.src = '/video?' + new Date().getTime();
+            playing = true;
+        }
+        function stopStream() {
+            img.src = '';
+            playing = false;
+        }
+        document.getElementById('playBtn').onclick = startStream;
+        document.getElementById('pauseBtn').onclick = stopStream;
+    </script>
+</body>
+</html>
