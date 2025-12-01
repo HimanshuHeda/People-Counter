@@ -117,7 +117,9 @@ def control():
     elif action == 'restart':
         video_state['restart'] = True
         video_state['paused'] = False
-    return jsonify(video_state)
+    # Don't return 'last_frame' (bytes) in JSON response
+    state = {k: v for k, v in video_state.items() if k != 'last_frame'}
+    return jsonify(state)
 
 @app.route('/')
 def index():
