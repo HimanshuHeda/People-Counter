@@ -9,6 +9,20 @@
         img { border: 5px solid #444; margin-top: 20px; }
         .controls { margin-top: 20px; }
         button { font-size: 18px; padding: 10px 20px; margin: 0 10px; }
+        #pauseOverlay {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            color: #fff;
+            background: rgba(0,0,0,0.5);
+            padding: 20px 40px;
+            border-radius: 20px;
+            display: none;
+            z-index: 10;
+        }
+        #videoContainer { position: relative; display: inline-block; }
     </style>
 </head>
 <body>
@@ -16,23 +30,36 @@
     <div class="controls">
         <button id="playBtn">Play</button>
         <button id="pauseBtn">Pause</button>
+        <button id="restartBtn">Restart</button>
     </div>
-    <img id="videoStream" src="/video" width="960" height="540" />
+    <div id="videoContainer">
+        <img id="videoStream" src="/video" width="960" height="540" />
+        <div id="pauseOverlay">Paused</div>
+    </div>
     <p>Live detection and counting using YOLOv8 and SORT</p>
     <script>
         const img = document.getElementById('videoStream');
+        const pauseOverlay = document.getElementById('pauseOverlay');
         let playing = true;
-        let interval;
-        function startStream() {
-            img.src = '/video?' + new Date().getTime();
-            playing = true;
+        function sendControl(action) {
+            fetch('/control', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action })
+            }).then(res => res.json()).then(state => {
+                if (state.paused) {
+                    pauseOverlay.style.display = 'block';
+                } else {
+                    pauseOverlay.style.display = 'none';
+                }
+                if (action === 'restart') {
+                    img.src = '/video?' + new Date().getTime();
+                }
+            });
         }
-        function stopStream() {
-            img.src = '';
-            playing = false;
-        }
-        document.getElementById('playBtn').onclick = startStream;
-        document.getElementById('pauseBtn').onclick = stopStream;
+        document.getElementById('playBtn').onclick = () => sendControl('play');
+        document.getElementById('pauseBtn').onclick = () => sendControl('pause');
+        document.getElementById('restartBtn').onclick = () => sendControl('restart');
     </script>
 </body>
 </html>

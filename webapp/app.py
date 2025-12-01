@@ -1,3 +1,16 @@
+from flask import Flask, Response, render_template, request, jsonify
+import threading
+import time
+
+app = Flask(__name__)
+
+# Global state for video control
+video_state = {
+    'paused': False,
+    'restart': False,
+    'last_frame': None
+}
+
 from flask import Flask, Response, render_template
 import cv2
 import numpy as np
@@ -31,14 +44,19 @@ totalCountDown = []
 
 def gen_frames():
     import time
-    frame_skip = 5  # Increase this for much faster playback (e.g., 5 = show every 5th frame)
-    paused = False
+    frame_skip = 5
     frame_count = 0
+    global cap
     while True:
-        # Check for pause/play via query param
-        # This is a simple implementation; for real-time control, use WebSocket or AJAX
-        # Here, we just check if 'paused' is set in the request args
-        # (Flask streaming can't access request.args directly, so this is a placeholder)
+        if video_state['restart']:
+            cap.release()
+            cap = cv2.VideoCapture("./Videos/people.mp4")
+            video_state['restart'] = False
+        if video_state['paused']:
+            if video_state['last_frame']:
+                yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + video_state['last_frame'] + b'\r\n')
+            time.sleep(0.1)
+            continue
         success, img = cap.read()
         if not success:
             break
@@ -86,7 +104,20 @@ def gen_frames():
         cv2.putText(img,str(len(totalCountDown)),(1191,345),cv2.FONT_HERSHEY_PLAIN,5,(50,50,230),7)
         ret, buffer = cv2.imencode('.jpg', img)
         frame = buffer.tobytes()
+        video_state['last_frame'] = frame
         yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+# API endpoints for pause/play/restart
+@app.route('/control', methods=['POST'])
+def control():
+    action = request.json.get('action')
+    if action == 'pause':
+        video_state['paused'] = True
+    elif action == 'play':
+        video_state['paused'] = False
+    elif action == 'restart':
+        video_state['restart'] = True
+        video_state['paused'] = False
+    return jsonify(video_state)
 
 @app.route('/')
 def index():
